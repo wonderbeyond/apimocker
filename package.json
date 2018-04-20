@@ -6,15 +6,20 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+      "apimocker": "./index.js"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "js-yaml": "^3.11.0",
+    "json-refs": "^3.0.4",
     "json-schema-faker": "^0.5.0-rc15",
     "jsonschema": "^1.2.4",
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
+    "yaml-refs": "^1.0.0",
     "yargs": "^11.0.0"
   }
 }

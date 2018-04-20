@@ -1,0 +1,52 @@
+info:
+  title: Petstore API
+  version: "0.1"
+style: json-rpc
+entry: http://172.16.13.199:8600/api/
+endpoints:
+  Pet.list:
+    summary: List Pets
+    params:
+      schema:
+        type: object
+        properties:
+          limit:
+            type: integer
+            default: 100
+          offset:
+            type: integer
+            default: 0
+    returns:
+      schema:
+        type: array
+        minItems: 5
+        items:
+          $ref: '#/defs/Pet'
+      sample:
+        # $ref: ./samples/pets.json
+  Pet.detail:
+    summary: Pet Detail
+    params:
+      schema:
+        type: object
+        properties:
+          object:
+            type: string
+        required: [object]
+    returns:
+      schema:
+        # $ref: '#/defs/Pet'
+      sample:
+        $ref: samples/pet.json
+
+defs:
+  Pet:
+    type: object
+    required: [_key, name]
+    properties:
+      _key:
+        type: string
+        pattern: '\d{8}'
+      name:
+        type: string
+        faker: name.findName
