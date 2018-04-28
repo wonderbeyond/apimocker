@@ -1,5 +1,7 @@
+id: keep-this-id-unique-per-project-and-dont-change-again
 info:
   title: Petstore API
+  description: This is a sample service for a pet store.
   version: "0.1"
 style: json-rpc
 entry: http://172.16.13.199:8600/api/
@@ -31,7 +33,7 @@ endpoints:
         type: object
         properties:
           object:
-            type: string
+            $ref: '#/defs/Pet/properties/_key'
         required: [object]
     returns:
       schema:
