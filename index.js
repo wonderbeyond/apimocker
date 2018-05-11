@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-const fs = require('fs');
 const yamlRefs = require('yaml-refs');
 const jsm = require('jsonschema');
 const jsf = require('json-schema-faker');
-const yargs = require('yargs')
+const yargs = require('yargs');
 const Koa = require('koa');
 const Router = require('koa-router');
 const app = new Koa();
@@ -65,32 +64,47 @@ const argv = yargs
     .argv;
 
 yamlRefs(argv.spec).then(res => {
-    var apiSpec = res;
-    if (apiSpec.style == 'json-rpc') {
-        router.post('/api', function (ctx) {
-            var payload = ctx.request.body;
-            var rpcMethod = payload.method;
-            ctx.jsonrpcCode = 0;
-            ctx.jsonrpcID = payload.id;
-            
-            try {
-                rpcCall(apiSpec, ctx, rpcMethod, payload.params);
-            } catch(err) {
-                ctx.status = 200;
-                let code = ctx.jsonrpcCode || -32000;
-                let message = code == -32000? 'Server error': err.message;
-                console.error(err.message);
-                ctx.body = packJRPCResponse({
-                    id: ctx.jsonrpcID,
-                    error: {
-                        code: ctx.jsonrpcCode || -32000,
-                        message: message,
-                    }
-                });
-            }
-        });
+    const apiSpec = res;
+    const defaultStyle = apiSpec.style || 'http';
+
+    for (let n in apiSpec.endpoints) {
+        let e = apiSpec.endpoints[n];
+        e.style = e.style || defaultStyle;
     }
-    
+
+    for (let n in apiSpec.endpoints) {
+        let item = apiSpec.endpoints[n];
+        if (item.style == 'http') {
+            router[item.request.method](`/api/${item.request.path}`, ctx => {
+                ctx.status = item.responses.status;
+                ctx.body = jsf(item.responses.body.schema);
+            });
+        }
+    }
+
+    router.post('/api', function (ctx) {
+        var payload = ctx.request.body;
+        var rpcMethod = payload.method;
+        ctx.jsonrpcCode = 0;
+        ctx.jsonrpcID = payload.id;
+        
+        try {
+            rpcCall(apiSpec, ctx, rpcMethod, payload.params);
+        } catch(err) {
+            ctx.status = 200;
+            let code = ctx.jsonrpcCode || -32000;
+            let message = code == -32000? 'Server error': err.message;
+            console.error(err.message);
+            ctx.body = packJRPCResponse({
+                id: ctx.jsonrpcID,
+                error: {
+                    code: ctx.jsonrpcCode || -32000,
+                    message: message,
+                }
+            });
+        }
+    });
+
     router.get('/', (ctx) => {
         var info = apiSpec.info;
         ctx.body = `<h1>${info.title} v${info.version}</h1>`;
@@ -125,24 +139,31 @@ yamlRefs(argv.spec).then(res => {
         };
         for (var key in apiSpec.endpoints) {
             const item = apiSpec.endpoints[key];
-            out.resources.push({
-                "_type": "request",
-                "parentId": workspaceID,
-                "_id": `req:${key}`,
-                "name": key,
-                "method": "POST",
-                "url": "{{entry}}",
-                "body": {
-                    "mimeType": "application/json",
-                    "text": JSON.stringify({
-                        "jsonrpc": "2.0",
-                        "id": +new Date(),
-                        "method": item.method || key,
-                        "params": jsf(item.params.schema),
-                    }, null, 4)
-                },
-                "description": `\`\`\`json\n${JSON.stringify(item, null, 4)}\n\`\`\``
-            });
+            if (item.style == 'jsonrpc') {
+                out.resources.push({
+                    "_type": "request",
+                    "parentId": workspaceID,
+                    "_id": `req:${key}`,
+                    "name": key,
+                    "method": "POST",
+                    "url": "{{entry}}",
+                    "headers": [{
+                        "id": "header-ct-json",
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }],
+                    "body": {
+                        "mimeType": "application/json",
+                        "text": JSON.stringify({
+                            "jsonrpc": "2.0",
+                            "id": +new Date(),
+                            "method": item.method || key,
+                            "params": jsf(item.params.schema),
+                        }, null, 4)
+                    },
+                    "description": `\`\`\`json\n${JSON.stringify(item, null, 4)}\n\`\`\``
+                });
+            }
         }
         ctx.body = out;
     });

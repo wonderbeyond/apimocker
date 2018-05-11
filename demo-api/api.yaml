@@ -3,9 +3,30 @@ info:
   title: Petstore API
   description: This is a sample service for a pet store.
   version: "0.1"
-style: json-rpc
-entry: http://172.16.13.199:8600/api/
+style: jsonrpc
+entry: http://127.0.0.1:3000/api/
 endpoints:
+  Image.upload:
+    style: http
+    request:
+      path: images/
+      method: post
+      body:
+        content_type: image/png
+        schema:
+          type: string
+          format: binary
+    responses:
+      status: 201
+      body:
+        content_type: application/json
+        schema:
+          type: object
+          required: [url]
+          properties:
+            url:
+              type: string
+              format: uri
   Pet.list:
     summary: List Pets
     params:
